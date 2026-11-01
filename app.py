@@ -84,26 +84,6 @@ feature_config = {
     }
 }
 
-# Sidebar controls for error percentage / uncertainty margin
-with st.sidebar:
-    st.header("⚙️ Valuation Settings")
-    st.write(
-        "By default, the price range is derived from the model's test Mean Absolute Error "
-        f"(MAE: ±${package.get('metrics', {}).get('test_mae', 25415.0):,.0f})."
-    )
-    custom_margin = st.checkbox("Set custom error percentage", value=False)
-    if custom_margin:
-        chosen_pct = st.slider(
-            "Error percentage (±%)",
-            min_value=5.0,
-            max_value=30.0,
-            value=14.0,
-            step=0.5,
-            help="Specify a custom percentage margin for the estimated price range."
-        )
-    else:
-        chosen_pct = None
-
 with st.form("house_details"):
     st.subheader("Property details")
     inputs = {}
@@ -155,13 +135,8 @@ if submitted:
     try:
         prediction = float(model.predict(input_df[features])[0])
         test_mae = float(package.get("metrics", {}).get("test_mae", 25415.06))
-
-        if chosen_pct is not None:
-            pct = chosen_pct
-            margin = prediction * (pct / 100.0)
-        else:
-            margin = test_mae
-            pct = (margin / prediction * 100.0) if prediction > 0 else 14.0
+        margin = test_mae
+        pct = (margin / prediction * 100.0) if prediction > 0 else 14.0
 
         lower_price = max(0.0, prediction - margin)
         upper_price = prediction + margin
@@ -191,7 +166,7 @@ if submitted:
 
         st.caption(
             f"Range reflects an error margin of approximately ±{pct:.1f}% "
-            f"({'custom percentage' if chosen_pct is not None else f'based on model test MAE of ±${test_mae:,.0f}'}). "
+            f"(based on model test MAE of ±${test_mae:,.0f}). "
             "This is a statistical estimate, not a formal appraisal."
         )
 
@@ -201,6 +176,3 @@ if submitted:
                 st.write("Saved test metrics:", package["metrics"])
     except Exception as exc:
         st.error(f"Prediction failed: {exc}")
-
-st.divider()
-st.caption("Linear Regression • Six features • Model loaded from Joblib")
